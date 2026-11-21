@@ -10,6 +10,14 @@ const { humanizeText, analyzeTextAILikeness, analyzeSentenceBreakdown, rerollSin
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Initialize default settings if missing
+if (process.env.GEMINI_API_KEY && !settingsOps.get('gemini_api_key')) {
+  settingsOps.set('gemini_api_key', process.env.GEMINI_API_KEY.trim());
+}
+if (!settingsOps.get('default_model') || settingsOps.get('default_model').includes('2.5-flash')) {
+  settingsOps.set('default_model', 'gemini-3.1-flash-lite');
+}
+
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -115,7 +123,10 @@ app.post('/api/chat/stream', async (req, res) => {
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
 
-  const selectedModel = model || settingsOps.get('default_model') || 'gemini-2.5-flash';
+  let selectedModel = model || settingsOps.get('default_model') || 'gemini-3.1-flash-lite';
+  if (selectedModel.includes('2.5-flash')) {
+    selectedModel = 'gemini-3.1-flash-lite';
+  }
   const shouldSearch = enableSearch !== undefined ? Boolean(enableSearch) : (settingsOps.get('web_search_enabled') === 'true');
 
   await streamChat({

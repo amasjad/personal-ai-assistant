@@ -113,7 +113,13 @@ async function streamChat({
       parts: currentParts
     });
 
-    const candidateModels = Array.from(new Set([model, 'gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.5-flash'])).filter(Boolean);
+    const candidateModels = Array.from(new Set([
+      model && !model.includes('2.5-flash') ? model : 'gemini-3.1-flash-lite',
+      'gemini-3.1-flash-lite',
+      'gemini-2.5-flash-lite',
+      'gemini-3.8-flash',
+      'gemini-3.5-flash'
+    ])).filter(Boolean);
     let fullText = '';
     let groundingData = null;
 

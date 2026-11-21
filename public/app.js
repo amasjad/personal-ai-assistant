@@ -811,7 +811,9 @@ async function handleSendMessage() {
                 renderSessionsList();
               }
             } else if (currentEvent === 'error') {
-              throw new Error(data.error);
+              accumulatedText = `⚠️ **Error:** ${data.error || 'Failed to generate response'}`;
+              assistantContentEl.innerHTML = renderDeepSeekMarkdown(accumulatedText, false);
+              return;
             }
           } catch (e) {
             // Ignore json parse error for malformed SSE chunks
