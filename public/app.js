@@ -1,5 +1,18 @@
 // Personal AI Assistant - Frontend Application Logic
 
+// Mobile Dynamic Viewport Fix
+function updateViewportHeight() {
+  const vh = window.innerHeight;
+  document.documentElement.style.setProperty('--app-height', `${vh}px`);
+}
+window.addEventListener('resize', updateViewportHeight);
+window.addEventListener('orientationchange', updateViewportHeight);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', updateViewportHeight);
+  window.visualViewport.addEventListener('scroll', updateViewportHeight);
+}
+updateViewportHeight();
+
 // ==================== STATE MANAGEMENT ====================
 const state = {
   currentSessionId: null,
@@ -1138,6 +1151,10 @@ function setupEventListeners() {
 
   // New Chat
   elements.newChatBtn.addEventListener('click', createNewSession);
+  const mobileNewChatBtn = document.getElementById('mobile-header-new-chat-btn');
+  if (mobileNewChatBtn) {
+    mobileNewChatBtn.addEventListener('click', createNewSession);
+  }
 
   // Search Sessions Filter
   elements.searchSessionsInput.addEventListener('input', (e) => {
@@ -1145,9 +1162,9 @@ function setupEventListeners() {
   });
 
   // Toggles
-  elements.headerSearchChip.addEventListener('click', toggleWebSearch);
-  elements.toggleSearchBtn.addEventListener('click', toggleWebSearch);
-  elements.headerSpeechChip.addEventListener('click', toggleAutoSpeech);
+  if (elements.headerSearchChip) elements.headerSearchChip.addEventListener('click', toggleWebSearch);
+  if (elements.toggleSearchBtn) elements.toggleSearchBtn.addEventListener('click', toggleWebSearch);
+  if (elements.headerSpeechChip) elements.headerSpeechChip.addEventListener('click', toggleAutoSpeech);
 
   // Antigravity PC Bridge Toggle
   if (elements.toggleAntigravityBtn) {

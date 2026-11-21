@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ai-assistant-v1';
+const CACHE_NAME = 'ai-assistant-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -10,9 +10,7 @@ const ASSETS_TO_CACHE = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
   );
   self.skipWaiting();
 });
@@ -28,25 +26,21 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-first strategy for dynamic chat data, cache-first for static assets
+// Network-first strategy: always fetch freshest assets from network, fall back to cache when offline
 self.addEventListener('fetch', (event) => {
-  if (event.request.url.includes('/api/')) {
-    // API requests always go to network
+  if (event.request.url.includes('/api/') || event.request.url.includes('/ws/')) {
     return;
   }
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return (
-        cached ||
-        fetch(event.request).then((response) => {
-          if (response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-      );
-    })
+    fetch(event.request)
+      .then((response) => {
+        if (response && response.status === 200 && event.request.method === 'GET') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

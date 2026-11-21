@@ -135,21 +135,26 @@
   </aside>
 
   <!-- ==================== MAIN CHAT CONTAINER ==================== -->
-  <main class="flex-1 flex flex-col h-full bg-[#0a0e17] relative overflow-hidden">
+  <main class="flex-1 flex flex-col h-full min-h-0 bg-[#0a0e17] relative overflow-hidden">
     
     <!-- Top Navigation Bar -->
-    <header class="h-14 border-b border-white/5 px-2.5 sm:px-4 flex items-center justify-between bg-slate-950/40 backdrop-blur-md z-10 shrink-0">
-      <div class="flex items-center gap-2 sm:gap-3 min-w-0">
-        <button id="open-sidebar-btn" class="md:hidden text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 active:scale-95 shrink-0">
+    <header class="h-13 sm:h-14 border-b border-white/5 px-2.5 sm:px-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md z-10 shrink-0">
+      <div class="flex items-center gap-2 min-w-0">
+        <button id="open-sidebar-btn" class="md:hidden text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 active:scale-95 shrink-0" title="Open menu">
           <i data-lucide="menu" class="w-5 h-5"></i>
         </button>
         <div class="flex items-center gap-1.5 min-w-0">
-          <h2 id="current-chat-title" class="font-semibold text-xs sm:text-sm text-slate-200 truncate max-w-[110px] xs:max-w-[140px] sm:max-w-xs">New Conversation</h2>
+          <span class="text-xs font-bold text-white tracking-tight flex items-center gap-1 shrink-0">
+            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+            Ajji AI
+          </span>
+          <span class="text-slate-600 hidden sm:inline">•</span>
+          <h2 id="current-chat-title" class="font-medium text-xs text-slate-400 truncate max-w-[100px] xs:max-w-[130px] sm:max-w-xs">New Conversation</h2>
         </div>
       </div>
 
-      <!-- App Center Tab Switcher (Chat vs StealthWriter) - Hidden on small mobile to avoid header overflow -->
-      <div class="hidden sm:flex items-center p-1 bg-slate-900/90 border border-white/10 rounded-xl shadow-inner shrink-0">
+      <!-- App Center Tab Switcher (Chat vs StealthWriter) - Hidden on mobile, accessible via sidebar -->
+      <div class="hidden md:flex items-center p-1 bg-slate-900/90 border border-white/10 rounded-xl shadow-inner shrink-0">
         <button id="header-tab-chat" class="app-tab-btn active px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow transition-all flex items-center gap-1.5">
           <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
           <span>Chat</span>
@@ -161,33 +166,31 @@
       </div>
 
       <!-- Quick Toggles & Info - Clean and compact on mobile -->
-      <div id="header-chat-toggles" class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+      <div id="header-chat-toggles" class="flex items-center gap-1.5 shrink-0">
+        <!-- New Chat button right on mobile header for quick tap! -->
+        <button id="mobile-header-new-chat-btn" class="sm:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 active:scale-95" title="New Chat">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+        </button>
+
         <!-- Antigravity PC Bridge Status Chip -->
-        <button id="header-bridge-chip" title="PC Bridge Status" class="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium border transition-all cursor-pointer bg-slate-900 border-white/10 text-slate-400 hover:border-emerald-500/40">
+        <button id="header-bridge-chip" title="PC Bridge Status" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all cursor-pointer bg-slate-900 border-white/10 text-slate-400 hover:border-emerald-500/40">
           <span id="bridge-dot" class="w-2 h-2 rounded-full bg-slate-500 transition-colors"></span>
-          <span class="font-mono"><span class="hidden sm:inline">PC: </span><span id="bridge-text">Offline</span></span>
+          <span class="font-mono text-[11px]"><span class="hidden xs:inline">PC: </span><span id="bridge-text">Offline</span></span>
         </button>
 
-        <!-- Deep Research (DeepSeek Mode) Status Chip -->
-        <button id="header-search-chip" title="Toggle DeepSeek Deep Research Mode" class="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer bg-slate-900 border-white/10 text-slate-400 hover:border-sky-500/40">
-          <i data-lucide="brain-circuit" class="w-3.5 h-3.5 text-sky-400"></i>
-          <span class="hidden sm:inline">Research:</span>
-          <span id="search-chip-state" class="text-slate-400">OFF</span>
-        </button>
-
-        <!-- Voice Auto-reply Toggle -->
-        <button id="header-speech-chip" title="Toggle Auto-Voice Output" class="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium border transition-all cursor-pointer bg-slate-900 border-white/10 text-slate-400 hover:border-indigo-500/40">
+        <!-- Voice Toggle (Desktop only in header) -->
+        <button id="header-speech-chip" title="Toggle Auto-Voice Output" class="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all cursor-pointer bg-slate-900 border-white/10 text-slate-400 hover:border-indigo-500/40">
           <i data-lucide="volume-2" class="w-3.5 h-3.5 text-indigo-400"></i>
           <span class="hidden sm:inline">Voice:</span>
-          <span id="speech-chip-state" class="text-slate-400">OFF</span>
+          <span id="speech-chip-state" class="text-slate-400 text-[11px]">OFF</span>
         </button>
       </div>
     </header>
 
     <!-- ==================== VIEW 1: CHAT ASSISTANT ==================== -->
-    <div id="view-chat" class="flex-1 flex flex-col h-[calc(100%-3.5rem)] overflow-hidden">
+    <div id="view-chat" class="flex-1 flex flex-col min-h-0 overflow-hidden">
       <!-- Chat Messages Scroll Area -->
-    <div id="messages-container" class="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-3.5 sm:space-y-5 select-text">
+      <div id="messages-container" class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-3.5 sm:space-y-5 select-text">
       
       <!-- Welcome Hero (Shown on empty conversation) -->
       <div id="welcome-hero" class="max-w-2xl mx-auto py-8 sm:py-16 text-center space-y-6">
@@ -245,7 +248,7 @@
     </div>
 
     <!-- ==================== FLOATING INPUT COMPOSER ==================== -->
-    <div class="p-2 sm:p-4 md:p-5 pb-safe bg-gradient-to-t from-[#0a0e17] via-[#0a0e17] to-transparent shrink-0">
+    <div class="p-2 sm:p-3 md:p-4 pb-3.5 sm:pb-4 pb-safe bg-gradient-to-t from-[#0a0e17] via-[#0a0e17]/95 to-transparent shrink-0 z-20">
       <div class="max-w-3xl mx-auto">
         
         <!-- Attachment Preview Bar -->
