@@ -89,14 +89,9 @@ function handleTask({ taskId, prompt, conversationId, dir }) {
   const args = [
     '--dangerously-skip-permissions',
     '--output-format', 'stream-json',
-    '--mode', 'auto',
     '--add-dir', workDir,
     '-p', prompt
   ];
-
-  if (conversationId) {
-    args.push('--conversation', conversationId);
-  }
 
   console.log(`🚀 Executing Antigravity Agent in: ${workDir}`);
   activeProcess = spawn(config.agyPath, args, {
