@@ -259,3 +259,58 @@ body {
 .deepseek-thinking-accordion[open] summary::after {
   transform: rotate(180deg);
 }
+
+/* ==================== MOBILE ENHANCEMENTS ==================== */
+
+/* Hide scrollbars for smooth touch scroll containers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Safe area padding for iPhones and Android edge displays */
+.pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem));
+}
+.pt-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0.5rem));
+}
+
+/* Touch responsiveness */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Responsive Markdown Tables on Mobile */
+.markdown-body table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Responsive Code Blocks */
+.markdown-body pre {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Avoid unwanted iOS Safari auto-zooming on input focus */
+@media screen and (max-width: 640px) {
+  #chat-input,
+  input[type="text"],
+  input[type="password"],
+  select {
+    font-size: 16px !important;
+  }
+
+  /* Compact markdown padding on mobile */
+  .markdown-body {
+    font-size: 0.915rem;
+    line-height: 1.6;
+  }
+}

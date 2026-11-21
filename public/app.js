@@ -582,7 +582,7 @@ function renderDeepSeekMarkdown(rawText, isStreaming = false) {
 function appendMessageToDOM(msg, isStreaming = false) {
   const isUser = msg.role === 'user';
   const msgWrapper = document.createElement('div');
-  msgWrapper.className = `flex gap-3 max-w-3xl mx-auto ${isUser ? 'justify-end' : 'justify-start'}`;
+  msgWrapper.className = `flex gap-2 sm:gap-3 max-w-3xl mx-auto w-full ${isUser ? 'justify-end' : 'justify-start'}`;
   msgWrapper.id = `msg-${msg.id}`;
 
   if (isUser) {
@@ -605,9 +605,9 @@ function appendMessageToDOM(msg, isStreaming = false) {
     }
 
     msgWrapper.innerHTML = `
-      <div class="max-w-[85%] sm:max-w-[75%] space-y-1">
+      <div class="max-w-[88%] sm:max-w-[75%] space-y-1">
         ${attachmentHtml}
-        <div class="bg-indigo-600 text-white px-4 py-3 rounded-2xl rounded-tr-sm text-sm shadow-md whitespace-pre-wrap leading-relaxed">
+        <div class="bg-indigo-600 text-white px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl rounded-tr-sm text-sm shadow-md whitespace-pre-wrap leading-relaxed break-words">
           ${escapeHtml(msg.content)}
         </div>
       </div>
@@ -628,7 +628,7 @@ function appendMessageToDOM(msg, isStreaming = false) {
           `).join('');
 
           groundingHtml = `
-            <div class="mb-3 p-2.5 rounded-xl bg-slate-900/60 border border-white/5 space-y-1.5">
+            <div class="mb-2.5 p-2 sm:p-2.5 rounded-xl bg-slate-900/60 border border-white/5 space-y-1.5">
               <div class="flex items-center gap-1.5 text-[11px] font-semibold text-cyan-400">
                 <i data-lucide="search" class="w-3 h-3"></i>
                 <span>Google Search Sources:</span>
@@ -645,17 +645,17 @@ function appendMessageToDOM(msg, isStreaming = false) {
     const htmlContent = renderDeepSeekMarkdown(msg.content || '', isStreaming);
 
     msgWrapper.innerHTML = `
-      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-cyan-500/10">
-        <i data-lucide="bot" class="w-4 h-4 text-white"></i>
+      <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-md shadow-cyan-500/10">
+        <i data-lucide="bot" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white"></i>
       </div>
-      <div class="flex-1 min-w-0 max-w-[90%] sm:max-w-[85%] space-y-2">
+      <div class="flex-1 min-w-0 max-w-[calc(100%-2.25rem)] sm:max-w-[85%] space-y-1.5 sm:space-y-2">
         <div id="grounding-box-${msg.id}">
           ${groundingHtml}
         </div>
-        <div class="markdown-body bg-slate-900/70 border border-white/5 p-4 rounded-2xl rounded-tl-sm text-sm ${isStreaming ? 'typing-cursor' : ''}" id="content-${msg.id}">
+        <div class="markdown-body bg-slate-900/70 border border-white/5 p-3 sm:p-4 rounded-2xl rounded-tl-sm text-sm break-words overflow-hidden ${isStreaming ? 'typing-cursor' : ''}" id="content-${msg.id}">
           ${htmlContent}
         </div>
-        <div class="flex items-center gap-2 pt-1">
+        <div class="flex items-center gap-2 pt-0.5 sm:pt-1">
           <button class="msg-speak-btn p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors text-xs" data-msg-id="${msg.id}" title="Read aloud" onclick="speakText(document.getElementById('content-${msg.id}').innerText, '${msg.id}')">
             <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
           </button>
