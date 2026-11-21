@@ -426,6 +426,34 @@ app.post('/api/ai-detect', (req, res) => {
   }
 });
 
+// Safety handlers to prevent process crashes
+process.on('uncaughtException', (err) => {
+  console.error('[Safety Guard] Uncaught Exception:', err.message);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[Safety Guard] Unhandled Rejection:', reason);
+});
+
+// Health check and Keep-Alive ping endpoint
+app.get('/api/ping', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: Date.now(),
+    uptime: Math.round(process.uptime()),
+    bridgeOnline: bridgeRelay.isOnline()
+  });
+});
+
+// Keep-Alive auto-ping every 8 minutes to prevent Render free container from idling/sleeping
+const PING_INTERVAL = 8 * 60 * 1000;
+setInterval(() => {
+  const targetUrl = process.env.RENDER_EXTERNAL_URL || 'https://ai.liorablossoms.com';
+  fetch(`${targetUrl}/api/ping`)
+    .then((r) => r.json())
+    .then((d) => console.log(`[KeepAlive] 24/7 Cloud Heartbeat OK (uptime: ${d.uptime}s, bridge: ${d.bridgeOnline})`))
+    .catch((err) => console.warn('[KeepAlive] Heartbeat warning:', err.message));
+}, PING_INTERVAL);
+
 // Start server
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Personal AI Assistant running at http://localhost:${PORT}`);

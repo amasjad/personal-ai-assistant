@@ -846,7 +846,8 @@ async function handleSendMessage() {
               accumulatedText += toolLabel;
               assistantContentEl.innerHTML = renderDeepSeekMarkdown(accumulatedText, true);
             } else if (currentEvent === 'error') {
-              accumulatedText = `⚠️ **Error:** ${data.error || 'Failed to generate response'}`;
+              accumulatedText = `⚠️ **Notice:** ${data.error || 'Failed to generate response'}`;
+              assistantContentEl.classList.remove('typing-cursor');
               assistantContentEl.innerHTML = renderDeepSeekMarkdown(accumulatedText, false);
               return;
             }
