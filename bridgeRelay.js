@@ -7,10 +7,16 @@ class BridgeRelay extends EventEmitter {
     this.activeSocket = null;
     this.bridgeInfo = null;
     this.taskEmitters = new Map();
+    this.pingInterval = null;
   }
 
   handleConnection(ws, req) {
     let isAuthenticated = false;
+    let isAlive = true;
+
+    ws.on('pong', () => {
+      isAlive = true;
+    });
 
     ws.on('message', (messageRaw) => {
       try {
@@ -24,6 +30,28 @@ class BridgeRelay extends EventEmitter {
               cwd: msg.cwd || '',
               connectedAt: Date.now()
             };
+
+            // Start heartbeat ping every 10 seconds
+            if (this.pingInterval) clearInterval(this.pingInterval);
+            this.pingInterval = setInterval(() => {
+              if (!this.activeSocket || this.activeSocket !== ws) {
+                clearInterval(this.pingInterval);
+                return;
+              }
+              if (!isAlive) {
+                console.log('🔌 Bridge ping timeout. Marking offline...');
+                ws.terminate();
+                this._cleanupSocket(ws);
+                return;
+              }
+              isAlive = false;
+              try {
+                ws.ping();
+              } catch (e) {
+                this._cleanupSocket(ws);
+              }
+            }, 10000);
+
             ws.send(JSON.stringify({ type: 'auth_ok' }));
             console.log(`🔌 Antigravity PC Bridge connected: ${this.bridgeInfo.machine} (${this.bridgeInfo.cwd})`);
             this.emit('status_change', { online: true, info: this.bridgeInfo });
@@ -39,6 +67,8 @@ class BridgeRelay extends EventEmitter {
           ws.close();
           return;
         }
+
+        isAlive = true;
 
         if (msg.type === 'task_event') {
           const emitter = this.taskEmitters.get(msg.taskId);
@@ -66,17 +96,32 @@ class BridgeRelay extends EventEmitter {
     });
 
     ws.on('close', () => {
-      if (this.activeSocket === ws) {
-        console.log('🔌 Antigravity PC Bridge disconnected');
-        this.activeSocket = null;
-        this.bridgeInfo = null;
-        this.emit('status_change', { online: false });
-      }
+      this._cleanupSocket(ws);
     });
 
     ws.on('error', (err) => {
       console.error('Bridge socket error:', err.message);
+      this._cleanupSocket(ws);
     });
+  }
+
+  _cleanupSocket(ws) {
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+    if (this.activeSocket === ws || !ws) {
+      console.log('🔌 Antigravity PC Bridge offline');
+      this.activeSocket = null;
+      this.bridgeInfo = null;
+      this.emit('status_change', { online: false });
+
+      // Notify any waiting tasks
+      for (const [taskId, emitter] of this.taskEmitters.entries()) {
+        emitter.emit('error', 'PC Bridge disconnected while executing task.');
+      }
+      this.taskEmitters.clear();
+    }
   }
 
   isOnline() {
@@ -99,6 +144,17 @@ class BridgeRelay extends EventEmitter {
 
     const emitter = new EventEmitter();
     this.taskEmitters.set(taskId, emitter);
+
+    // 25 second safety timeout to avoid hanging if the PC goes to sleep mid-command
+    const safetyTimer = setTimeout(() => {
+      if (this.taskEmitters.has(taskId)) {
+        emitter.emit('error', 'Task timed out after 25s without response from PC.');
+        this.taskEmitters.delete(taskId);
+      }
+    }, 25000);
+
+    emitter.on('done', () => clearTimeout(safetyTimer));
+    emitter.on('error', () => clearTimeout(safetyTimer));
 
     this.activeSocket.send(JSON.stringify({
       type: 'execute',

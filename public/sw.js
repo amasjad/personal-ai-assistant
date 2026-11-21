@@ -1,9 +1,9 @@
-const CACHE_NAME = 'ai-assistant-v3';
+const CACHE_NAME = 'ai-assistant-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/style.css?v=2.2',
-  '/app.js?v=2.2',
+  '/style.css?v=2.3',
+  '/app.js?v=2.3',
   '/manifest.json',
   '/icons/icon.svg'
 ];

@@ -25,7 +25,7 @@ wss.on('connection', (ws, req) => {
 if (process.env.GEMINI_API_KEY && !settingsOps.get('gemini_api_key')) {
   settingsOps.set('gemini_api_key', process.env.GEMINI_API_KEY.trim());
 }
-if (!settingsOps.get('default_model') || settingsOps.get('default_model').includes('2.5-flash')) {
+if (!settingsOps.get('default_model') || settingsOps.get('default_model').includes('2.5') || settingsOps.get('default_model') === 'gemini-3.8-flash') {
   settingsOps.set('default_model', 'gemini-3.1-flash-lite');
 }
 
@@ -109,10 +109,11 @@ app.get('/api/bridge/status', (req, res) => {
 
 // ----------------- Chat Streaming (SSE) -----------------
 app.post('/api/chat/stream', async (req, res) => {
-  const { sessionId, message, attachment, enableSearch, model, useBridge } = req.body;
+  let { sessionId, message, attachment, enableSearch, model, useBridge } = req.body;
 
-  if (!sessionId) {
-    return res.status(400).json({ error: 'sessionId is required' });
+  // Auto-generate sessionId if missing so request NEVER fails with 400
+  if (!sessionId || typeof sessionId !== 'string' || !sessionId.trim()) {
+    sessionId = 'sess-' + crypto.randomUUID();
   }
   if (!message && !attachment) {
     return res.status(400).json({ error: 'Message or attachment is required' });
@@ -150,7 +151,7 @@ app.post('/api/chat/stream', async (req, res) => {
   };
 
   let selectedModel = model || settingsOps.get('default_model') || 'gemini-3.1-flash-lite';
-  if (selectedModel.includes('2.5-flash')) {
+  if (selectedModel.includes('2.5') || selectedModel === 'gemini-3.8-flash') {
     selectedModel = 'gemini-3.1-flash-lite';
   }
   const shouldSearch = enableSearch !== undefined ? Boolean(enableSearch) : (settingsOps.get('web_search_enabled') === 'true');
@@ -158,20 +159,19 @@ app.post('/api/chat/stream', async (req, res) => {
   // If user requested Antigravity PC Bridge execution
   if (useBridge || model === 'antigravity') {
     if (!bridgeRelay.isOnline()) {
-      sendEvent('error', {
-        error: 'Antigravity PC Bridge is currently OFFLINE. Ensure your computer is awake and run-bridge.bat is running, or toggle off Antigravity Mode.'
+      // Rather than hanging or throwing an error, notify user and answer immediately with Cloud AI!
+      sendEvent('chunk', {
+        text: `> 💻 _[PC Bridge Offline]_ Your computer is asleep or offline, answering directly via Cloud AI:\n\n`
       });
-      res.end();
-      return;
-    }
+      // Fall through to streamChat below!
+    } else {
+      const taskId = crypto.randomUUID();
+      let accumulatedText = '';
 
-    const taskId = crypto.randomUUID();
-    let accumulatedText = '';
-
-    try {
-      const taskEmitter = bridgeRelay.executeTask(taskId, message || 'Hello', {
-        conversationId: sessionId
-      });
+      try {
+        const taskEmitter = bridgeRelay.executeTask(taskId, message || 'Hello', {
+          conversationId: sessionId
+        });
 
       taskEmitter.on('event', (data) => {
         if (!data) return;
@@ -226,6 +226,7 @@ app.post('/api/chat/stream', async (req, res) => {
       sendEvent('error', { error: err.message });
       res.end();
       return;
+    }
     }
   }
 

@@ -25,7 +25,7 @@ const state = {
   memories: [],
   settings: {
     gemini_api_key: '',
-    default_model: 'gemini-3.8-flash',
+    default_model: 'gemini-3.1-flash-lite',
     web_search_enabled: false,
     system_persona: '',
     selected_voice: ''
@@ -714,6 +714,11 @@ async function handleSendMessage() {
 
   if (!messageText && !attachment) return;
   if (state.isGenerating) return;
+
+  // Ensure valid session exists before sending
+  if (!state.currentSessionId) {
+    state.currentSessionId = 'sess-' + Date.now();
+  }
 
   // Stop recording if active
   stopRecordingVoice();
@@ -1950,7 +1955,7 @@ function setupStealthWriterListeners() {
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js?v=3')
+      navigator.serviceWorker.register('/sw.js?v=4')
         .then((reg) => {
           reg.update();
         })

@@ -114,10 +114,9 @@ async function streamChat({
     });
 
     const candidateModels = Array.from(new Set([
-      model && !model.includes('2.5-flash') ? model : 'gemini-3.1-flash-lite',
+      model && !model.includes('2.5') && !model.includes('3.8') ? model : 'gemini-3.1-flash-lite',
       'gemini-3.1-flash-lite',
-      'gemini-2.5-flash-lite',
-      'gemini-3.8-flash',
+      'gemini-3.5-flash-lite',
       'gemini-3.5-flash'
     ])).filter(Boolean);
     let fullText = '';
@@ -136,11 +135,17 @@ async function streamChat({
       let lastError = null;
       for (const m of candidateModels) {
         try {
-          const responseStream = await ai.models.generateContentStream({
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error(`Model ${m} response timeout (12s)`)), 12000);
+          });
+
+          const streamPromise = ai.models.generateContentStream({
             model: m,
             contents: contents,
             config: config
           });
+
+          const responseStream = await Promise.race([streamPromise, timeoutPromise]);
 
           for await (const chunk of responseStream) {
             const delta = chunk.text || '';
