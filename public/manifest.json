@@ -1,0 +1,18 @@
+{
+  "name": "Ajji's Personal AI",
+  "short_name": "Ajji's AI",
+  "description": "Ajji's intelligent personal companion with voice notes, web search, vision, and long-term memory",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0e17",
+  "theme_color": "#0a0e17",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "192x192 512x512 any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "personal-ai-assistant",
+  "version": "1.0.0",
+  "description": "Personal AI Assistant Web App with Voice, Search, Vision, and Long-Term Memory",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": ["ai", "gemini", "assistant", "voice", "search", "pwa"],
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/genai": "^3.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.4",
+    "express": "^5.2.1",
+    "multer": "^2.0.2"
+  }
+}

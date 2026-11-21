@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Ajji's Personal AI</title>
+  
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0a0e17" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="/icons/icon.svg" />
+  <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdfa',
+              500: '#14b8a6',
+              600: '#0d9488',
+            },
+            accent: {
+              cyan: '#06b6d4',
+              indigo: '#6366f1',
+              purple: '#a855f7'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Highlight.js for code blocks -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <!-- Marked.js for Markdown -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="bg-[#0a0e17] text-slate-100 flex h-screen overflow-hidden antialiased select-none">
+
+  <!-- Mobile Overlay for Sidebar -->
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden transition-opacity"></div>
+
+  <!-- ==================== SIDEBAR ==================== -->
+  <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 bg-[#0f172a] border-r border-white/5 flex flex-col transition-transform duration-300 -translate-x-full md:translate-x-0">
+    <!-- Sidebar Header -->
+    <div class="p-4 border-b border-white/5 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+            Ajji's Personal AI
+            <span class="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Pro</span>
+          </h1>
+          <p class="text-[11px] text-slate-400">Voice • Search • Memory</p>
+        </div>
+      </div>
+      <button id="close-sidebar-btn" class="md:hidden text-slate-400 hover:text-white p-1 rounded-lg">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Navigation Tabs (Chat vs StealthWriter) -->
+    <div class="px-3 pt-3 pb-1 space-y-1">
+      <button id="sidebar-tab-chat" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-600/20 text-white border border-indigo-500/30 transition-all">
+        <i data-lucide="message-square" class="w-4 h-4 text-indigo-400"></i>
+        <span>Chat Assistant</span>
+      </button>
+      <button id="sidebar-tab-humanizer" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-white/5 hover:text-white transition-all border border-transparent">
+        <div class="flex items-center gap-2.5">
+          <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+          <span>StealthWriter AI</span>
+        </div>
+        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Bypass</span>
+      </button>
+    </div>
+
+    <!-- New Chat Button -->
+    <div class="p-3">
+      <button id="new-chat-btn" class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-medium text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.98]">
+        <i data-lucide="plus" class="w-4 h-4"></i>
+        <span>New Conversation</span>
+      </button>
+    </div>
+
+    <!-- Search Sessions -->
+    <div class="px-3 pb-2">
+      <div class="relative">
+        <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
+        <input id="search-sessions-input" type="text" placeholder="Search chats..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-900/70 border border-white/5 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50" />
+      </div>
+    </div>
+
+    <!-- Sessions List -->
+    <div id="sessions-list" class="flex-1 overflow-y-auto px-2 py-1 space-y-0.5">
+      <!-- Session items inserted dynamically -->
+    </div>
+
+    <!-- Sidebar Bottom Controls -->
+    <div class="p-3 border-t border-white/5 bg-slate-950/40 space-y-1">
+      <!-- Memory Bank Button -->
+      <button id="open-memory-btn" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:bg-white/5 text-xs font-medium transition-colors">
+        <div class="flex items-center gap-2">
+          <i data-lucide="brain-circuit" class="w-4 h-4 text-purple-400"></i>
+          <span>Memory Bank</span>
+        </div>
+        <span id="memory-count-badge" class="px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-semibold border border-purple-500/30">0</span>
+      </button>
+
+      <!-- Settings Button -->
+      <button id="open-settings-btn" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:bg-white/5 text-xs font-medium transition-colors">
+        <div class="flex items-center gap-2">
+          <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i>
+          <span>Settings & Model</span>
+        </div>
+        <span id="active-model-tag" class="text-[10px] text-slate-400 truncate max-w-[90px]">Gemini 2.5</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ==================== MAIN CHAT CONTAINER ==================== -->
+  <main class="flex-1 flex flex-col h-full bg-[#0a0e17] relative overflow-hidden">
+    
+    <!-- Top Navigation Bar -->
+    <header class="h-14 border-b border-white/5 px-4 flex items-center justify-between bg-slate-950/30 backdrop-blur-md z-10">
+      <div class="flex items-center gap-3">
+        <button id="open-sidebar-btn" class="md:hidden text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+        <div class="flex items-center gap-2">
+          <h2 id="current-chat-title" class="font-semibold text-sm text-slate-200 truncate max-w-[130px] sm:max-w-xs">New Conversation</h2>
+        </div>
+      </div>
+
+      <!-- App Center Tab Switcher (Chat vs StealthWriter) -->
+      <div class="flex items-center p-1 bg-slate-900/90 border border-white/10 rounded-xl shadow-inner">
+        <button id="header-tab-chat" class="app-tab-btn active px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow transition-all flex items-center gap-1.5">
+          <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">Chat</span>
+        </button>
+        <button id="header-tab-humanizer" class="app-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all flex items-center gap-1.5">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>StealthWriter</span>
+        </button>
+      </div>
+
+      <!-- Quick Toggles & Info -->
+      <div id="header-chat-toggles" class="flex items-center gap-2">
+        <!-- Deep Research (DeepSeek Mode) Status Chip -->
+        <button id="header-search-chip" title="Toggle DeepSeek Deep Research Mode" class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer bg-slate-900 border-white/10 text-slate-400 hover:border-sky-500/40">
+          <i data-lucide="brain-circuit" class="w-3.5 h-3.5 text-sky-400"></i>
+          <span class="hidden sm:inline">Deep Research:</span>
+          <span id="search-chip-state" class="text-slate-400">OFF</span>
+        </button>
+
+        <!-- Voice Auto-reply Toggle -->
+        <button id="header-speech-chip" title="Toggle Auto-Voice Output" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer bg-slate-900 border-white/10 text-slate-400 hover:border-indigo-500/40">
+          <i data-lucide="volume-2" class="w-3.5 h-3.5 text-indigo-400"></i>
+          <span class="hidden sm:inline">Voice:</span>
+          <span id="speech-chip-state" class="text-slate-400">OFF</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ==================== VIEW 1: CHAT ASSISTANT ==================== -->
+    <div id="view-chat" class="flex-1 flex flex-col h-[calc(100%-3.5rem)] overflow-hidden">
+      <!-- Chat Messages Scroll Area -->
+    <div id="messages-container" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 select-text">
+      
+      <!-- Welcome Hero (Shown on empty conversation) -->
+      <div id="welcome-hero" class="max-w-2xl mx-auto py-8 sm:py-16 text-center space-y-6">
+        <div class="inline-flex p-4 rounded-3xl bg-gradient-to-tr from-cyan-500/10 via-indigo-500/10 to-purple-500/10 border border-indigo-500/20 shadow-xl shadow-indigo-500/5">
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+            <i data-lucide="bot" class="w-8 h-8 text-white"></i>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            Hello, Ajji! 👋
+          </h2>
+          <p class="text-sm text-slate-400 max-w-md mx-auto">
+            Your private personal AI is ready with live web search, voice notes, and long-term memory.
+          </p>
+        </div>
+
+        <!-- Suggestion Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left pt-4">
+          <button class="prompt-suggestion-btn p-3.5 rounded-xl bg-slate-900/60 border border-white/5 hover:border-cyan-500/40 hover:bg-slate-800/40 transition-all text-xs group" data-prompt="What are the top AI and tech news happening this week?">
+            <div class="flex items-center gap-2 text-cyan-400 font-semibold mb-1">
+              <i data-lucide="globe" class="w-3.5 h-3.5"></i>
+              <span>Live Web Search</span>
+            </div>
+            <p class="text-slate-400 group-hover:text-slate-200 transition-colors">What are the top AI and tech news happening this week?</p>
+          </button>
+
+          <button class="prompt-suggestion-btn p-3.5 rounded-xl bg-slate-900/60 border border-white/5 hover:border-purple-500/40 hover:bg-slate-800/40 transition-all text-xs group" data-prompt="Tell me what you remember about me and my projects so far.">
+            <div class="flex items-center gap-2 text-purple-400 font-semibold mb-1">
+              <i data-lucide="brain" class="w-3.5 h-3.5"></i>
+              <span>Check Long-Term Memory</span>
+            </div>
+            <p class="text-slate-400 group-hover:text-slate-200 transition-colors">Tell me what you remember about me and my preferences so far.</p>
+          </button>
+
+          <button class="prompt-suggestion-btn p-3.5 rounded-xl bg-slate-900/60 border border-white/5 hover:border-indigo-500/40 hover:bg-slate-800/40 transition-all text-xs group" data-prompt="Let's brainstorm features to expand our personal AI assistant!">
+            <div class="flex items-center gap-2 text-indigo-400 font-semibold mb-1">
+              <i data-lucide="lightbulb" class="w-3.5 h-3.5"></i>
+              <span>Brainstorm Ideas</span>
+            </div>
+            <p class="text-slate-400 group-hover:text-slate-200 transition-colors">Let's brainstorm cool features to expand our personal AI assistant!</p>
+          </button>
+
+          <button class="prompt-suggestion-btn p-3.5 rounded-xl bg-slate-900/60 border border-white/5 hover:border-emerald-500/40 hover:bg-slate-800/40 transition-all text-xs group" data-prompt="Help me write a concise plan for my daily workflow and goals.">
+            <div class="flex items-center gap-2 text-emerald-400 font-semibold mb-1">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+              <span>Daily Productivity</span>
+            </div>
+            <p class="text-slate-400 group-hover:text-slate-200 transition-colors">Help me write a concise plan for my daily workflow and goals.</p>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== FLOATING INPUT COMPOSER ==================== -->
+    <div class="p-3 md:p-5 bg-gradient-to-t from-[#0a0e17] via-[#0a0e17] to-transparent">
+      <div class="max-w-3xl mx-auto">
+        
+        <!-- Attachment Preview Bar -->
+        <div id="attachment-preview-container" class="hidden mb-2 p-2 rounded-xl bg-slate-900/80 border border-white/10 flex items-center justify-between">
+          <div class="flex items-center gap-2.5 overflow-hidden">
+            <img id="attachment-preview-img" src="" class="w-9 h-9 rounded object-cover hidden border border-white/10" />
+            <div id="attachment-preview-icon" class="w-9 h-9 rounded bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+              <i data-lucide="file-text" class="w-5 h-5"></i>
+            </div>
+            <div class="text-xs truncate">
+              <p id="attachment-preview-name" class="font-medium text-slate-200 truncate max-w-xs">image.png</p>
+              <p id="attachment-preview-size" class="text-[10px] text-slate-400">120 KB</p>
+            </div>
+          </div>
+          <button id="remove-attachment-btn" class="p-1 rounded-lg text-slate-400 hover:text-red-400 hover:bg-white/5">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- Voice Live Visualizer (when recording) -->
+        <div id="voice-recording-banner" class="hidden mb-2 px-3 py-2 rounded-xl bg-red-950/40 border border-red-500/30 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="audio-wave">
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+            </div>
+            <span class="text-xs font-semibold text-red-300">Listening to your voice... (speak freely)</span>
+          </div>
+          <button id="stop-voice-btn" class="text-xs font-medium px-2.5 py-1 rounded bg-red-500 hover:bg-red-600 text-white transition-colors">
+            Done
+          </button>
+        </div>
+
+        <!-- Main Composer Box -->
+        <div class="relative bg-slate-900/90 rounded-2xl border border-white/10 shadow-2xl focus-within:border-indigo-500/50 transition-all p-2.5">
+          <!-- Textarea -->
+          <textarea
+            id="chat-input"
+            rows="1"
+            placeholder="Ask anything, speak with voice, or paste an image..."
+            class="w-full bg-transparent text-slate-100 placeholder-slate-500 text-sm focus:outline-none resize-none px-2 py-1 max-h-40 overflow-y-auto"
+          ></textarea>
+
+          <!-- Input Action Bar -->
+          <div class="flex items-center justify-between pt-2 border-t border-white/5 mt-1">
+            <div class="flex items-center gap-1">
+              
+              <!-- File / Image Upload -->
+              <input type="file" id="file-upload-input" class="hidden" accept="image/*,application/pdf,text/*" />
+              <button id="upload-btn" title="Attach image or file" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
+                <i data-lucide="paperclip" class="w-4 h-4"></i>
+              </button>
+
+              <!-- DeepSeek Deep Research Toggle Button -->
+              <button id="toggle-search-btn" title="Toggle DeepSeek Deep Research Mode" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-transparent text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+                <i data-lucide="brain-circuit" class="w-4 h-4 text-sky-400"></i>
+                <span class="hidden sm:inline">Deep Research (DeepSeek)</span>
+              </button>
+
+              <!-- AI Humanizer Direct Shortcut Button -->
+              <button id="composer-humanize-btn" type="button" title="Open AI Humanizer & StealthWriter" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-transparent text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-all">
+                <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                <span class="hidden sm:inline">AI Humanizer</span>
+              </button>
+
+              <!-- Voice Dictation / Speech-to-Text Button -->
+              <button id="mic-btn" title="Speak with Voice" class="flex items-center gap-1.5 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all active:scale-95">
+                <i data-lucide="mic" class="w-4 h-4 text-rose-400"></i>
+              </button>
+            </div>
+
+            <!-- Send / Stop Button -->
+            <div class="flex items-center gap-1">
+              <button id="stop-generation-btn" class="hidden p-2 rounded-xl bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-all active:scale-95 text-xs font-medium flex items-center gap-1">
+                <i data-lucide="square" class="w-3.5 h-3.5 fill-current"></i>
+                <span class="hidden sm:inline">Stop</span>
+              </button>
+
+              <button id="send-btn" class="p-2 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-medium transition-all shadow-md shadow-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95">
+                <i data-lucide="send" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-[10px] text-center text-slate-500 mt-2">
+          Ajji's Personal AI uses Google Gemini with live search grounding & persistent memory.
+        </p>
+      </div>
+    </div>
+  </div><!-- End of view-chat -->
+
+  <!-- ==================== VIEW 2: STEALTHWRITER LIVE AI HUMANIZER ==================== -->
+  <div id="view-humanizer" class="flex-1 flex flex-col h-[calc(100%-3.5rem)] overflow-hidden hidden select-text">
+    
+    <!-- Top Action & Navigation Bar -->
+    <div class="px-3 sm:px-4 py-2 border-b border-white/5 bg-slate-950/70 backdrop-blur-md flex flex-wrap items-center justify-between gap-2.5 z-10 shrink-0">
+      
+      <!-- Left: Navigation Tabs (AI Humanizer Tool vs Web Embed vs Dashboard) -->
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <button id="sw-tab-builtin" class="sw-nav-tab active px-3 py-1 rounded-xl text-xs font-semibold bg-emerald-600 text-white shadow transition-all flex items-center gap-1.5">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-white"></i>
+          <span>AI Humanizer Tool</span>
+        </button>
+
+        <button id="sw-tab-tool" class="sw-nav-tab px-3 py-1 rounded-xl text-xs font-semibold text-slate-400 hover:text-white bg-slate-900 border border-white/5 hover:border-white/10 transition-all flex items-center gap-1.5">
+          <i data-lucide="globe" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>StealthWriter.ai Web</span>
+        </button>
+
+        <button id="sw-tab-dashboard" class="sw-nav-tab px-3 py-1 rounded-xl text-xs font-semibold text-slate-400 hover:text-white bg-slate-900 border border-white/5 hover:border-white/10 transition-all flex items-center gap-1.5">
+          <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>Dashboard</span>
+        </button>
+      </div>
+
+      <!-- Right: Utility Controls (Launch Window, Copy Chat, Reload, External Link) -->
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <button id="sw-popout-btn" title="Launch StealthWriter in a dedicated login-enabled window" class="px-2.5 py-1 rounded-xl text-xs font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow flex items-center gap-1.5 transition-all">
+          <i data-lucide="app-window" class="w-3.5 h-3.5"></i>
+          <span>Launch App Window</span>
+        </button>
+
+        <button id="sw-copy-chat-btn" title="Copy last AI response from chat" class="px-2.5 py-1 rounded-xl text-xs font-semibold bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 border border-indigo-500/20 flex items-center gap-1.5 transition-all">
+          <i data-lucide="clipboard" class="w-3.5 h-3.5 text-indigo-400"></i>
+          <span class="hidden sm:inline">Copy Last Chat</span>
+        </button>
+
+        <button id="sw-reload-btn" title="Reload StealthWriter Frame" class="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+        </button>
+
+        <a id="sw-external-btn" href="https://stealthwriter.ai/dashboard/humanizer" target="_blank" rel="noopener noreferrer" title="Open StealthWriter in new tab" class="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all flex items-center">
+          <i data-lucide="external-link" class="w-3.5 h-3.5 text-slate-400"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- Built-in Dual Editor Container (DEFAULT ACTIVE VIEW - Full Dual-Pane Humanizer) -->
+    <div id="stealthwriter-builtin-container" class="flex-1 w-full h-full overflow-y-auto p-4 sm:p-6 max-w-6xl mx-auto space-y-4">
+      
+      <!-- Top Title & Credentials Banner (StealthWriter Dual Engine) -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2 border-b border-white/5">
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20 mb-1">
+            <i data-lucide="shield-check" class="w-3 h-3"></i>
+            <span>STEALTHWRITER ENGINE • College Assignment & Turnitin Bypass</span>
+          </div>
+          <h2 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            AI Assignment & Essay Humanizer
+          </h2>
+          <p class="text-xs text-slate-400">
+            Transform AI notes from ChatGPT/Gemini into 100% authentic, natural human writing.
+          </p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+            <i data-lucide="check-circle" class="w-3 h-3"></i> Turnitin 0%
+          </span>
+          <span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center gap-1">
+            <i data-lucide="check-circle" class="w-3 h-3"></i> GPTZero 98%+
+          </span>
+          <span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center gap-1">
+            <i data-lucide="check-circle" class="w-3 h-3"></i> CopyLeaks Pass
+          </span>
+        </div>
+      </div>
+
+      <!-- Toolbar Controls (Modes, Levels, Tones & Freeze Words) -->
+      <div class="p-3.5 rounded-2xl bg-slate-900/80 border border-white/10 flex flex-col gap-3 shadow-lg">
+        
+        <!-- Top Row: Engine Models & Aggression Level -->
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <!-- Engine Models -->
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-xs font-semibold text-slate-400 mr-1 flex items-center gap-1">
+              <i data-lucide="cpu" class="w-3.5 h-3.5 text-indigo-400"></i> Engine:
+            </span>
+            
+            <button id="mode-ghost" data-mode="ghost" class="humanizer-mode-btn active px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 transition-all flex items-center gap-1.5 shadow-sm">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>Ghost Pro (Turnitin Academic)</span>
+            </button>
+
+            <button id="mode-ninja" data-mode="ninja" class="humanizer-mode-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center gap-1.5">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-purple-400"></i>
+              <span>Ninja (Fast Bypass)</span>
+            </button>
+
+            <button id="mode-academic" data-mode="academic" class="humanizer-mode-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center gap-1.5">
+              <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-cyan-400"></i>
+              <span>Academic Natural</span>
+            </button>
+          </div>
+
+          <!-- Stealthwriter Aggression Level (1 to 5) -->
+          <div class="flex items-center gap-2 bg-slate-950/60 px-2.5 py-1 rounded-xl border border-white/5">
+            <span class="text-xs text-slate-400 font-semibold flex items-center gap-1">
+              <i data-lucide="sliders" class="w-3 h-3 text-emerald-400"></i> Stealth Level:
+            </span>
+            <div class="flex items-center gap-1">
+              <button data-level="1" class="humanizer-level-btn px-2 py-0.5 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition-all">L1 Light</button>
+              <button data-level="3" class="humanizer-level-btn px-2 py-0.5 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition-all">L3 Balanced</button>
+              <button data-level="5" class="humanizer-level-btn active px-2.5 py-0.5 rounded bg-emerald-600 text-white text-[11px] font-bold shadow transition-all">L5 Max Stealth</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Row: Assignment Tone & Freeze Keywords -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-white/5">
+          <!-- Tone Selector -->
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <span class="text-xs font-semibold text-slate-400 whitespace-nowrap flex items-center gap-1">
+              <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-cyan-400"></i> Tone:
+            </span>
+            <select id="humanizer-tone-select" class="bg-slate-950 border border-white/10 rounded-xl px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500/50">
+              <option value="academic" selected>🎓 College Assignment & Essay</option>
+              <option value="casual">📝 Student Study Notes</option>
+              <option value="research">🔬 Formal University Paper</option>
+            </select>
+          </div>
+
+          <!-- Freeze Keywords Input -->
+          <div class="relative w-full sm:flex-1 sm:max-w-md">
+            <i data-lucide="lock" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
+            <input id="humanizer-freeze-input" type="text" placeholder="Freeze terms (e.g. Python, Section 2, Professor Name)..." class="w-full pl-8 pr-3 py-1 text-xs bg-slate-950/70 border border-white/10 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50" />
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Side-by-Side Dual Editor Panels -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        
+        <!-- Left: Input AI Text Panel -->
+        <div class="flex flex-col bg-slate-900/70 border border-white/10 rounded-2xl overflow-hidden shadow-xl min-h-[420px]">
+          <!-- Panel Header -->
+          <div class="px-4 py-2.5 bg-slate-950/70 border-b border-white/5 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+              <span class="text-xs font-bold text-slate-200">Original AI Text</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button id="paste-input-btn" class="text-xs text-slate-300 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 flex items-center gap-1 transition-colors">
+                <i data-lucide="clipboard" class="w-3 h-3"></i>
+                <span>Paste</span>
+              </button>
+              <button id="sample-input-btn" class="text-xs text-indigo-400 hover:text-indigo-300 px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 flex items-center gap-1 transition-colors">
+                <i data-lucide="sparkles" class="w-3 h-3"></i>
+                <span>Sample</span>
+              </button>
+              <button id="clear-input-btn" class="text-xs text-slate-400 hover:text-red-400 px-2 py-1 rounded hover:bg-white/5 transition-colors">
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <!-- Textarea -->
+          <div class="p-3 flex-1 flex flex-col">
+            <textarea id="humanizer-input" placeholder="Paste your AI-generated college notes, essay drafts, or assignment answers here..." class="w-full flex-1 bg-transparent text-sm text-slate-200 placeholder-slate-500 focus:outline-none resize-none leading-relaxed p-1 min-h-[280px]"></textarea>
+          </div>
+
+          <!-- Panel Footer with Word Count & AI Probability Meter -->
+          <div class="px-4 py-2.5 bg-slate-950/50 border-t border-white/5 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2 text-slate-400 font-mono text-[11px]">
+              <span id="input-word-count">0 words</span>
+              <span class="text-slate-600">•</span>
+              <span id="input-char-count">0 chars</span>
+            </div>
+            <div id="input-detection-badge" class="hidden flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-semibold">
+              <i data-lucide="alert-triangle" class="w-3 h-3 text-rose-400"></i>
+              <span id="input-detection-text">AI Likeness: 85%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Humanized Output Panel -->
+        <div class="flex flex-col bg-slate-900/70 border border-white/10 rounded-2xl overflow-hidden shadow-xl min-h-[420px]">
+          <!-- Panel Header -->
+          <div class="px-4 py-2.5 bg-slate-950/70 border-b border-white/5 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="text-xs font-bold text-slate-200">Humanized Output</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button id="toggle-sentence-scan-btn" class="text-xs text-indigo-300 hover:text-white px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 flex items-center gap-1 transition-all" title="Toggle Sentence-by-Sentence AI Check">
+                <i data-lucide="scan" class="w-3 h-3 text-indigo-400"></i>
+                <span id="scan-btn-label">Sentence Scan</span>
+              </button>
+              <button id="copy-humanized-btn" class="text-xs text-emerald-300 hover:text-white px-3 py-1 rounded-lg bg-emerald-600/20 border border-emerald-500/30 hover:bg-emerald-600/30 flex items-center gap-1 transition-all">
+                <i data-lucide="copy" class="w-3 h-3"></i>
+                <span>Copy</span>
+              </button>
+              <button id="speak-humanized-btn" class="text-xs text-slate-300 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 flex items-center gap-1 transition-colors">
+                <i data-lucide="volume-2" class="w-3 h-3"></i>
+                <span>Listen</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Drafts Switcher Bar (StealthWriter Multi-Drafts) -->
+          <div id="drafts-tab-bar" class="hidden px-3 py-1.5 bg-slate-950/50 border-b border-white/5 flex items-center gap-1.5 overflow-x-auto text-xs">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <!-- Humanized Text Output Container -->
+          <div class="p-4 flex-1 flex flex-col overflow-y-auto">
+            <!-- Text View -->
+            <div id="humanizer-output" class="text-sm text-slate-200 leading-relaxed min-h-[280px] whitespace-pre-wrap select-text">
+              <div class="h-full flex flex-col items-center justify-center text-center p-8 text-slate-500 space-y-2">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                  <i data-lucide="shield-check" class="w-6 h-6"></i>
+                </div>
+                <p class="text-xs font-medium text-slate-300">Your humanized, Turnitin-ready text will appear here.</p>
+                <p class="text-[11px] text-slate-500">Paste your text on the left and click "Humanize Text".</p>
+              </div>
+            </div>
+
+            <!-- Sentence Scan View (StealthWriter Deep Breakdown) -->
+            <div id="sentence-scan-container" class="hidden space-y-2.5">
+              <!-- Inserted dynamically per sentence with scores and reroll buttons -->
+            </div>
+          </div>
+
+          <!-- Panel Footer with Score Breakdown -->
+          <div class="px-4 py-2.5 bg-slate-950/50 border-t border-white/5 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2 text-slate-400 font-mono text-[11px]">
+              <span id="output-word-count">0 words</span>
+              <span id="output-function-words-chip" class="hidden text-emerald-400 font-semibold">• 45% connectors</span>
+            </div>
+            <div id="output-score-badge" class="hidden flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span id="output-score-text">Human Score: 98%</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action Button & Detector Cards Row -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-1">
+        <!-- Detectors Verified Badge List -->
+        <div id="detectors-badge-row" class="hidden flex items-center gap-2 flex-wrap">
+          <span class="text-xs text-slate-400 font-semibold">Verification:</span>
+          <span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+            <i data-lucide="check" class="w-3 h-3"></i> Turnitin 0% AI
+          </span>
+          <span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center gap-1">
+            <i data-lucide="check" class="w-3 h-3"></i> GPTZero 98%+
+          </span>
+          <span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center gap-1">
+            <i data-lucide="check" class="w-3 h-3"></i> CopyLeaks Pass
+          </span>
+        </div>
+
+        <div class="w-full sm:w-auto flex items-center gap-2 ml-auto">
+          <button id="run-humanize-btn" class="w-full sm:w-auto px-7 py-3 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>Humanize Text</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- College Assignment Strategic Recommendations Banner -->
+      <div class="p-4 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-slate-900/60 to-purple-950/40 border border-indigo-500/20 shadow-xl space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+              <i data-lucide="graduation-cap" class="w-4 h-4"></i>
+            </div>
+            <h4 class="text-xs font-bold text-slate-200">College Assignment Turnitin Strategy (Why Paraphrasing Alone Fails)</h4>
+          </div>
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Verified Method</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300 pt-1">
+          <div class="p-2.5 rounded-xl bg-slate-950/50 border border-white/5 space-y-1">
+            <p class="font-bold text-indigo-300 flex items-center gap-1.5">
+              <span>1.</span> Ghost Pro + Level 5
+            </p>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              Never use 1-to-1 synonym spinners. Ghost Pro deconstructs the clauses and restructures arguments into active student prose.
+            </p>
+          </div>
+          <div class="p-2.5 rounded-xl bg-slate-950/50 border border-white/5 space-y-1">
+            <p class="font-bold text-cyan-300 flex items-center gap-1.5">
+              <span>2.</span> Freeze Terms & Citations
+            </p>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              Always add your course name, formula names, professor names, and citation authors into <strong>Freeze Terms</strong> so technical accuracy is 100% preserved.
+            </p>
+          </div>
+          <div class="p-2.5 rounded-xl bg-slate-950/50 border border-white/5 space-y-1">
+            <p class="font-bold text-emerald-300 flex items-center gap-1.5">
+              <span>3.</span> The Grounding Rule
+            </p>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              Insert 1 specific detail from your class syllabus or lecture (e.g. <em>"as explored in Week 4..."</em>). This completely eliminates machine perplexity patterns.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      </div><!-- End of stealthwriter-builtin-container -->
+
+      <!-- Live StealthWriter Embedded Frame Container (Hidden by default, shown when Web tab clicked) -->
+      <div id="stealthwriter-live-container" class="flex-1 w-full h-full p-2 sm:p-3 flex flex-col min-h-0 bg-[#0a0e17] hidden">
+        <!-- Quick Clipboard Helper Banner -->
+        <div id="stealthwriter-clipboard-banner" class="hidden mb-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center justify-between shadow-sm animate-pulse">
+          <div class="flex items-center gap-2">
+            <i data-lucide="clipboard-check" class="w-4 h-4 text-emerald-400"></i>
+            <span id="stealthwriter-clipboard-text">AI notes copied to clipboard! Paste directly into StealthWriter below (Ctrl + V).</span>
+          </div>
+          <button id="close-clipboard-banner-btn" class="text-slate-400 hover:text-white p-1">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- Live StealthWriter Frame -->
+        <iframe
+          id="stealthwriter-iframe"
+          src="https://stealthwriter.ai/"
+          class="w-full h-full flex-1 border border-white/10 rounded-2xl bg-[#0a0e17] shadow-2xl"
+          allow="clipboard-read; clipboard-write; fullscreen"
+          loading="lazy"
+        ></iframe>
+      </div>
+
+    </div><!-- End of view-humanizer -->
+  </main>
+
+  <!-- ==================== MEMORY BANK MODAL ==================== -->
+  <div id="memory-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-lg glass-modal rounded-2xl p-5 shadow-2xl flex flex-col max-h-[85vh]">
+      <!-- Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
+            <i data-lucide="brain-circuit" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Long-Term Memory Bank</h3>
+            <p class="text-[11px] text-slate-400">Facts and preferences remembered across all chats</p>
+          </div>
+        </div>
+        <button id="close-memory-modal-btn" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Add New Memory Form -->
+      <div class="pt-3 pb-2">
+        <form id="add-memory-form" class="flex gap-2">
+          <input
+            id="new-memory-input"
+            type="text"
+            placeholder="Add a fact (e.g. 'I work with Python and React')"
+            class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+            required
+          />
+          <button type="submit" class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium transition-colors flex items-center gap-1">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Add</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Memories Scroll Area -->
+      <div id="memories-list" class="flex-1 overflow-y-auto py-2 space-y-2">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SETTINGS MODAL ==================== -->
+  <div id="settings-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-lg glass-modal rounded-2xl p-5 shadow-2xl flex flex-col max-h-[90vh]">
+      <!-- Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Assistant Settings</h3>
+            <p class="text-[11px] text-slate-400">Configure AI model, API key, and speech</p>
+          </div>
+        </div>
+        <button id="close-settings-modal-btn" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Settings Form -->
+      <div class="flex-1 overflow-y-auto py-4 space-y-4 text-xs">
+        <!-- Gemini API Key -->
+        <div class="space-y-1.5">
+          <label class="font-medium text-slate-300 flex items-center justify-between">
+            <span>Gemini API Key</span>
+            <a href="https://aistudio.google.com/" target="_blank" class="text-cyan-400 hover:underline flex items-center gap-1 text-[11px]">
+              <span>Get Free Key</span>
+              <i data-lucide="external-link" class="w-3 h-3"></i>
+            </a>
+          </label>
+          <input
+            id="setting-api-key"
+            type="password"
+            placeholder="AIzaSy..."
+            class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          />
+          <p class="text-[10px] text-slate-500">Stored safely on your local machine.</p>
+        </div>
+
+        <!-- Model Selection -->
+        <div class="space-y-1.5">
+          <label class="font-medium text-slate-300">Model Selection</label>
+          <select id="setting-model" class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+            <option value="gemini-3.8-flash">Gemini 3.8 Flash (Recommended: Ultra-fast & smart)</option>
+            <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+            <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+            <option value="gemini-2.5-pro">Gemini 2.5 Pro (Deep reasoning)</option>
+          </select>
+        </div>
+
+        <!-- System Persona -->
+        <div class="space-y-1.5">
+          <label class="font-medium text-slate-300">AI Personality / System Prompt</label>
+          <textarea
+            id="setting-persona"
+            rows="3"
+            placeholder="You are a brilliant, concise, and helpful personal AI assistant..."
+            class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
+          ></textarea>
+        </div>
+
+        <!-- Voice Output Selector -->
+        <div class="space-y-1.5">
+          <label class="font-medium text-slate-300">Text-to-Speech Voice</label>
+          <select id="setting-voice" class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+            <option value="">System Default Voice</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Footer Buttons -->
+      <div class="pt-3 border-t border-white/10 flex justify-end gap-2">
+        <button id="save-settings-btn" class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-medium text-xs transition-all active:scale-95 shadow-md shadow-indigo-500/20">
+          Save Settings
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main JavaScript Application -->
+  <script src="/app.js"></script>
+</body>
+</html>
