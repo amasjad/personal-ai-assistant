@@ -2,11 +2,16 @@
 
 // Mobile Dynamic Viewport Fix
 function updateViewportHeight() {
-  const vh = window.innerHeight;
+  const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
   document.documentElement.style.setProperty('--app-height', `${vh}px`);
+  if (document.body) {
+    document.body.style.height = `${vh}px`;
+  }
 }
 window.addEventListener('resize', updateViewportHeight);
-window.addEventListener('orientationchange', updateViewportHeight);
+window.addEventListener('orientationchange', () => {
+  setTimeout(updateViewportHeight, 150);
+});
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', updateViewportHeight);
   window.visualViewport.addEventListener('scroll', updateViewportHeight);
@@ -1945,7 +1950,11 @@ function setupStealthWriterListeners() {
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
+      navigator.serviceWorker.register('/sw.js?v=3')
+        .then((reg) => {
+          reg.update();
+        })
+        .catch(() => {});
     });
   }
 }

@@ -1,18 +1,18 @@
-const CACHE_NAME = 'ai-assistant-v2';
+const CACHE_NAME = 'ai-assistant-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/style.css',
-  '/app.js',
+  '/style.css?v=2.2',
+  '/app.js?v=2.2',
   '/manifest.json',
   '/icons/icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
-  );
   self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE)).catch(() => {})
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -21,9 +21,8 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 // Network-first strategy: always fetch freshest assets from network, fall back to cache when offline
