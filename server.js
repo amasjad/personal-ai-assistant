@@ -3,12 +3,23 @@ const express = require('express');
 const cors = require('cors');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const http = require('node:http');
+const { WebSocketServer } = require('ws');
 const { sessionOps, messageOps, memoryOps, settingsOps } = require('./db');
 const { streamChat, generateTitle, getApiKey } = require('./ai');
 const { humanizeText, analyzeTextAILikeness, analyzeSentenceBreakdown, rerollSingleSentence } = require('./humanizer');
+const { BridgeRelay } = require('./bridgeRelay');
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
+
+// Initialize Antigravity PC Bridge Relay
+const bridgeRelay = new BridgeRelay(process.env.BRIDGE_SECRET_KEY);
+const wss = new WebSocketServer({ server, path: '/ws/bridge' });
+wss.on('connection', (ws, req) => {
+  bridgeRelay.handleConnection(ws, req);
+});
 
 // Initialize default settings if missing
 if (process.env.GEMINI_API_KEY && !settingsOps.get('gemini_api_key')) {
@@ -81,9 +92,14 @@ app.delete('/api/sessions/:id', (req, res) => {
   }
 });
 
+// ----------------- Antigravity PC Bridge Status -----------------
+app.get('/api/bridge/status', (req, res) => {
+  res.json(bridgeRelay.getStatus());
+});
+
 // ----------------- Chat Streaming (SSE) -----------------
 app.post('/api/chat/stream', async (req, res) => {
-  const { sessionId, message, attachment, enableSearch, model } = req.body;
+  const { sessionId, message, attachment, enableSearch, model, useBridge } = req.body;
 
   if (!sessionId) {
     return res.status(400).json({ error: 'sessionId is required' });
@@ -128,6 +144,80 @@ app.post('/api/chat/stream', async (req, res) => {
     selectedModel = 'gemini-3.1-flash-lite';
   }
   const shouldSearch = enableSearch !== undefined ? Boolean(enableSearch) : (settingsOps.get('web_search_enabled') === 'true');
+
+  // If user requested Antigravity PC Bridge execution
+  if (useBridge || model === 'antigravity') {
+    if (!bridgeRelay.isOnline()) {
+      sendEvent('error', {
+        error: 'Antigravity PC Bridge is currently OFFLINE. Ensure your computer is awake and run-bridge.bat is running, or toggle off Antigravity Mode.'
+      });
+      res.end();
+      return;
+    }
+
+    const taskId = crypto.randomUUID();
+    let accumulatedText = '';
+
+    try {
+      const taskEmitter = bridgeRelay.executeTask(taskId, message || 'Hello', {
+        conversationId: sessionId
+      });
+
+      taskEmitter.on('event', (data) => {
+        if (!data) return;
+
+        if (data.event === 'step_update' && data.step_update) {
+          const su = data.step_update;
+          if (su.text_delta) {
+            accumulatedText += su.text_delta;
+            sendEvent('chunk', { text: su.text_delta });
+          } else if (su.step_type === 'tool_execution' || su.step_type === 'call_tool') {
+            sendEvent('tool_call', {
+              tool: su.tool_name || su.name || 'tool',
+              state: su.state,
+              info: su.description || ''
+            });
+          }
+        } else if (data.event === 'result' && data.result) {
+          if (data.result.response && !accumulatedText) {
+            accumulatedText = data.result.response;
+            sendEvent('chunk', { text: accumulatedText });
+          }
+        } else if (data.event === 'raw_output' && data.text) {
+          accumulatedText += data.text + '\n';
+          sendEvent('chunk', { text: data.text + '\n' });
+        }
+      });
+
+      taskEmitter.on('done', (result) => {
+        const modelMsgId = crypto.randomUUID();
+        messageOps.create({
+          id: modelMsgId,
+          sessionId: sessionId,
+          role: 'model',
+          content: accumulatedText || 'Task completed.',
+          groundingData: JSON.stringify({ mode: 'antigravity_cli' })
+        });
+        sendEvent('done', {
+          id: modelMsgId,
+          content: accumulatedText || 'Task completed.',
+          groundingData: { mode: 'antigravity_cli' }
+        });
+        res.end();
+      });
+
+      taskEmitter.on('error', (err) => {
+        sendEvent('error', { error: typeof err === 'string' ? err : (err.message || 'Execution error') });
+        res.end();
+      });
+
+      return;
+    } catch (err) {
+      sendEvent('error', { error: err.message });
+      res.end();
+      return;
+    }
+  }
 
   await streamChat({
     apiKey: getApiKey(),
@@ -326,7 +416,7 @@ app.post('/api/ai-detect', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Personal AI Assistant running at http://localhost:${PORT}`);
   console.log(`📱 Available on local network at your computer's IP address (port ${PORT})`);
 });

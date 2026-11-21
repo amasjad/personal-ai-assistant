@@ -29,7 +29,9 @@ const state = {
   activeSpeechUtterance: null,
   activeSpeakerMsgId: null,
   abortController: null,
-  voices: []
+  voices: [],
+  antigravityMode: false,
+  bridgeOnline: false
 };
 
 // ==================== DOM ELEMENTS ====================
@@ -122,6 +124,11 @@ const elements = {
   fileUploadInput: document.getElementById('file-upload-input'),
   uploadBtn: document.getElementById('upload-btn'),
   toggleSearchBtn: document.getElementById('toggle-search-btn'),
+  toggleAntigravityBtn: document.getElementById('toggle-antigravity-btn'),
+  antigravityStateBadge: document.getElementById('antigravity-state-badge'),
+  headerBridgeChip: document.getElementById('header-bridge-chip'),
+  bridgeDot: document.getElementById('bridge-dot'),
+  bridgeText: document.getElementById('bridge-text'),
   composerHumanizeBtn: document.getElementById('composer-humanize-btn'),
   micBtn: document.getElementById('mic-btn'),
   sendBtn: document.getElementById('send-btn'),
@@ -741,7 +748,8 @@ async function handleSendMessage() {
         message: messageText,
         attachment: attachment,
         enableSearch: state.webSearchEnabled,
-        model: state.settings.default_model
+        model: state.settings.default_model,
+        useBridge: state.antigravityMode
       }),
       signal: state.abortController.signal
     });
@@ -810,6 +818,10 @@ async function handleSendMessage() {
                 elements.currentChatTitle.textContent = data.title;
                 renderSessionsList();
               }
+            } else if (currentEvent === 'tool_call') {
+              const toolLabel = `\n> ⚡ **[Antigravity]** \`${escapeHtml(data.tool)}\` ${data.info ? `— _${escapeHtml(data.info)}_` : ''}\n\n`;
+              accumulatedText += toolLabel;
+              assistantContentEl.innerHTML = renderDeepSeekMarkdown(accumulatedText, true);
             } else if (currentEvent === 'error') {
               accumulatedText = `⚠️ **Error:** ${data.error || 'Failed to generate response'}`;
               assistantContentEl.innerHTML = renderDeepSeekMarkdown(accumulatedText, false);
@@ -1136,6 +1148,65 @@ function setupEventListeners() {
   elements.headerSearchChip.addEventListener('click', toggleWebSearch);
   elements.toggleSearchBtn.addEventListener('click', toggleWebSearch);
   elements.headerSpeechChip.addEventListener('click', toggleAutoSpeech);
+
+  // Antigravity PC Bridge Toggle
+  if (elements.toggleAntigravityBtn) {
+    elements.toggleAntigravityBtn.addEventListener('click', () => {
+      state.antigravityMode = !state.antigravityMode;
+      if (state.antigravityMode) {
+        elements.toggleAntigravityBtn.classList.add('text-emerald-400', 'bg-emerald-950/40', 'border-emerald-500/30');
+        elements.toggleAntigravityBtn.classList.remove('text-slate-400', 'border-transparent');
+        elements.antigravityStateBadge.textContent = 'ON';
+        elements.antigravityStateBadge.className = 'text-[10px] uppercase font-bold text-emerald-400 ml-0.5';
+        elements.chatInput.placeholder = '⚡ Antigravity Mode: Type a command (e.g. check git status, test build, edit files)...';
+        elements.chatInput.focus();
+        if (!state.bridgeOnline) {
+          showToast('⚠️ PC Bridge is currently offline. Start run-bridge.bat on your PC to execute local tasks.');
+        } else {
+          showToast('⚡ Antigravity Mode active! Commands run directly on your PC.');
+        }
+      } else {
+        elements.toggleAntigravityBtn.classList.remove('text-emerald-400', 'bg-emerald-950/40', 'border-emerald-500/30');
+        elements.toggleAntigravityBtn.classList.add('text-slate-400', 'border-transparent');
+        elements.antigravityStateBadge.textContent = 'OFF';
+        elements.antigravityStateBadge.className = 'text-[10px] uppercase font-bold text-slate-500 ml-0.5';
+        elements.chatInput.placeholder = 'Ask anything, speak with voice, or paste an image...';
+      }
+    });
+  }
+
+  // Antigravity Bridge Status Polling
+  function updateBridgeUI(online) {
+    state.bridgeOnline = online;
+    if (!elements.bridgeDot || !elements.bridgeText) return;
+    if (online) {
+      elements.bridgeDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+      elements.bridgeText.textContent = 'PC Online';
+      elements.bridgeText.className = 'text-emerald-400 font-mono text-[11px]';
+      if (elements.headerBridgeChip) {
+        elements.headerBridgeChip.classList.add('border-emerald-500/30', 'bg-emerald-950/20');
+      }
+    } else {
+      elements.bridgeDot.className = 'w-2 h-2 rounded-full bg-slate-500';
+      elements.bridgeText.textContent = 'PC Offline';
+      elements.bridgeText.className = 'text-slate-400 font-mono text-[11px]';
+      if (elements.headerBridgeChip) {
+        elements.headerBridgeChip.classList.remove('border-emerald-500/30', 'bg-emerald-950/20');
+      }
+    }
+  }
+
+  async function checkBridgeStatus() {
+    try {
+      const res = await fetch('/api/bridge/status');
+      if (!res.ok) return;
+      const data = await res.json();
+      updateBridgeUI(Boolean(data.online));
+    } catch (e) {}
+  }
+
+  setInterval(checkBridgeStatus, 8000);
+  checkBridgeStatus();
 
   // AI Humanizer Quick Jump from Composer
   if (elements.composerHumanizeBtn) {
